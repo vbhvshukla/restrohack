@@ -35,7 +35,7 @@ const DepartmentForm = () => {
         }
 
         try {
-            // Send data to backend running on port 8006
+            // Send data to backend using the correct API endpoint
             const response = await axios.post('http://localhost:8006/api/v1/department/', {
                 name: formData.name.trim(),
                 description: formData.description.trim(),
