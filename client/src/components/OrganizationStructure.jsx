@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState } from 'react';
 import ReactFlow, {
 	Background,
 	Controls,
@@ -6,13 +6,10 @@ import ReactFlow, {
 	useNodesState,
 	useEdgesState,
 	addEdge,
-	Panel,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import employeesData from '../data/employees.json';
 import { v4 as uuidv4 } from 'uuid';
-import { getEmployees, addEmployee } from '../utils/employeeUtils';
-import { Link } from 'react-router-dom';
 
 // Utility function to generate unique IDs for nodes
 const generateNodeId = () => uuidv4().slice(0, 8);
@@ -30,6 +27,15 @@ const generateDepartmentNodes = () => {
 			department: dept,
 		},
 		position: { x: 500 * (index + 1), y: 150 },
+		style: {
+			background: '#1f2937',
+			border: '1px solid #374151',
+			borderRadius: '8px',
+			padding: '15px',
+			color: '#f3f4f6',
+			boxShadow:
+				'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+		},
 	}));
 };
 
@@ -81,6 +87,15 @@ const generateEmployeeNodes = (employeeData) => {
 					x: xBase + xOffset,
 					y: 150 + position * 200,
 				},
+				style: {
+					background: '#1f2937',
+					border: '1px solid #374151',
+					borderRadius: '8px',
+					padding: '15px',
+					color: '#f3f4f6',
+					boxShadow:
+						'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+				},
 			});
 		});
 	});
@@ -99,6 +114,7 @@ const generateEdges = (adminId, departmentNodes, employeeNodes) => {
 			id: `e-admin-${dept}`,
 			source: adminId,
 			target: dept,
+			style: { stroke: '#0d9488', strokeWidth: 2 },
 		});
 	});
 
@@ -124,13 +140,13 @@ const generateEdges = (adminId, departmentNodes, employeeNodes) => {
 					id: `e-${dept}-${node.id}`,
 					source: dept,
 					target: node.id,
+					style: { stroke: '#0d9488', strokeWidth: 2 },
 				});
 			});
 		}
 	});
 
 	// Connect positions hierarchically within departments
-	// Assign each employee to a single parent (first available parent in previous position)
 	departments.forEach((dept) => {
 		if (departmentPositionMap[dept]) {
 			for (let pos = 1; pos < 5; pos++) {
@@ -138,13 +154,10 @@ const generateEdges = (adminId, departmentNodes, employeeNodes) => {
 					departmentPositionMap[dept][pos] &&
 					departmentPositionMap[dept][pos + 1]
 				) {
-					// For each position level, distribute children among parents
 					const parents = departmentPositionMap[dept][pos];
 					const children = departmentPositionMap[dept][pos + 1];
 
-					// Distribute children evenly among parents
 					children.forEach((childNode, index) => {
-						// Determine parent index, distributing evenly
 						const parentIndex = index % parents.length;
 						const parentNode = parents[parentIndex];
 
@@ -152,6 +165,7 @@ const generateEdges = (adminId, departmentNodes, employeeNodes) => {
 							id: `e-${parentNode.id}-${childNode.id}`,
 							source: parentNode.id,
 							target: childNode.id,
+							style: { stroke: '#0d9488', strokeWidth: 2 },
 						});
 					});
 				}
@@ -166,138 +180,38 @@ const NodeDetails = ({ node }) => {
 	if (!node) return null;
 
 	return (
-		<div className="space-y-2">
-			<h3 className="text-lg font-semibold">Node Details</h3>
-			<p>
-				<span className="font-medium">Name:</span> {node.data.name}
+		<div className="space-y-2 bg-gray-800 p-6 rounded-lg shadow-lg">
+			<h3 className="text-lg font-semibold text-white">Node Details</h3>
+			<p className="text-gray-300">
+				<span className="font-medium text-teal-400">Name:</span>{' '}
+				{node.data.name}
 			</p>
-			<p>
-				<span className="font-medium">Email:</span> {node.data.email}
+			<p className="text-gray-300">
+				<span className="font-medium text-teal-400">Email:</span>{' '}
+				{node.data.email}
 			</p>
-			<p>
-				<span className="font-medium">Job Title:</span> {node.data.jobTitle}
+			<p className="text-gray-300">
+				<span className="font-medium text-teal-400">Job Title:</span>{' '}
+				{node.data.jobTitle}
 			</p>
 			{node.data.department && (
-				<p>
-					<span className="font-medium">Department:</span>{' '}
+				<p className="text-gray-300">
+					<span className="font-medium text-teal-400">Department:</span>{' '}
 					{node.data.department}
 				</p>
 			)}
 			{node.data.position && (
-				<p>
-					<span className="font-medium">Position:</span> {node.data.position}
+				<p className="text-gray-300">
+					<span className="font-medium text-teal-400">Position:</span>{' '}
+					{node.data.position}
 				</p>
 			)}
 		</div>
 	);
 };
 
-const AddEmployeeForm = ({ onSubmit, onCancel }) => {
-	const [formData, setFormData] = useState({
-		name: '',
-		email: '',
-		department: 'dev',
-		position: 1,
-	});
-
-	const handleSubmit = (e) => {
-		e.preventDefault();
-		onSubmit(formData);
-	};
-
-	return (
-		<form
-			onSubmit={handleSubmit}
-			className="bg-white p-6 rounded-lg shadow-lg w-96"
-		>
-			<h3 className="text-xl font-semibold mb-4">Add New Employee</h3>
-			<div className="space-y-4">
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Name
-					</label>
-					<input
-						type="text"
-						value={formData.name}
-						onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-						className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						required
-					/>
-				</div>
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Email
-					</label>
-					<input
-						type="email"
-						value={formData.email}
-						onChange={(e) =>
-							setFormData({ ...formData, email: e.target.value })
-						}
-						className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						required
-					/>
-				</div>
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Department
-					</label>
-					<select
-						value={formData.department}
-						onChange={(e) =>
-							setFormData({ ...formData, department: e.target.value })
-						}
-						className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						required
-					>
-						<option value="dev">Development</option>
-						<option value="sales">Sales</option>
-						<option value="marketing">Marketing</option>
-					</select>
-				</div>
-				<div>
-					<label className="block text-sm font-medium text-gray-700 mb-1">
-						Position (1-5)
-					</label>
-					<select
-						value={formData.position}
-						onChange={(e) =>
-							setFormData({ ...formData, position: parseInt(e.target.value) })
-						}
-						className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-						required
-					>
-						{[1, 2, 3, 4, 5].map((pos) => (
-							<option key={pos} value={pos}>
-								{pos}
-							</option>
-						))}
-					</select>
-				</div>
-			</div>
-			<div className="mt-6 flex justify-end space-x-3">
-				<button
-					type="button"
-					onClick={onCancel}
-					className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
-				>
-					Cancel
-				</button>
-				<button
-					type="submit"
-					className="px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500"
-				>
-					Add Employee
-				</button>
-			</div>
-		</form>
-	);
-};
-
 const OrganizationStructure = () => {
-	const [employees, setEmployees] = useState(employeesData);
 	const [selectedNode, setSelectedNode] = useState(null);
-	const [showAddForm, setShowAddForm] = useState(false);
 
 	// Create admin node
 	const adminNode = {
@@ -310,11 +224,20 @@ const OrganizationStructure = () => {
 			jobTitle: 'Administrator',
 		},
 		position: { x: 750, y: 0 },
+		style: {
+			background: '#0d9488',
+			border: '1px solid #0f766e',
+			borderRadius: '8px',
+			padding: '15px',
+			color: '#ffffff',
+			boxShadow:
+				'0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+		},
 	};
 
 	// Generate department and employee nodes
 	const departmentNodes = generateDepartmentNodes();
-	const employeeNodes = generateEmployeeNodes(employees);
+	const employeeNodes = generateEmployeeNodes(employeesData);
 	const allNodes = [adminNode, ...departmentNodes, ...employeeNodes];
 
 	// Generate edges
@@ -322,21 +245,6 @@ const OrganizationStructure = () => {
 
 	const [nodes, setNodes, onNodesChange] = useNodesState(allNodes);
 	const [edges, setEdges, onEdgesChange] = useEdgesState(allEdges);
-
-	// Update nodes and edges when employees change
-	useEffect(() => {
-		const departmentNodes = generateDepartmentNodes();
-		const employeeNodes = generateEmployeeNodes(employees);
-		const allNodes = [adminNode, ...departmentNodes, ...employeeNodes];
-		const allEdges = generateEdges(
-			adminNode.id,
-			departmentNodes,
-			employeeNodes
-		);
-
-		setNodes(allNodes);
-		setEdges(allEdges);
-	}, [employees]);
 
 	const onConnect = useCallback(
 		(params) => setEdges((eds) => addEdge(params, eds)),
@@ -347,37 +255,8 @@ const OrganizationStructure = () => {
 		setSelectedNode(node);
 	}, []);
 
-	const handleAddEmployee = (formData) => {
-		const newEmployee = {
-			department: formData.department,
-			position: formData.position,
-			name: formData.name,
-			email: formData.email,
-		};
-
-		// Use the utility function to add an employee
-		const updatedEmployees = addEmployee(newEmployee);
-		setEmployees(updatedEmployees);
-		setShowAddForm(false);
-	};
-
 	return (
-		<div className="w-full h-[1000px] relative">
-			<div className="absolute top-5 left-5 z-50 flex space-x-4">
-				<Link
-					to="/teams/create"
-					className="px-4 py-2 bg-purple-500 text-white rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-500"
-				>
-					Create Teams
-				</Link>
-				<Link
-					to="/teams/view"
-					className="px-4 py-2 bg-indigo-500 text-white rounded-md hover:bg-indigo-600 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-				>
-					View Teams
-				</Link>
-			</div>
-
+		<div className="w-full h-[1000px] relative bg-gray-900">
 			<ReactFlow
 				nodes={nodes}
 				edges={edges}
@@ -390,35 +269,22 @@ const OrganizationStructure = () => {
 				maxZoom={1.5}
 				fitView
 			>
-				<Background />
-				<Controls />
-				<MiniMap />
-				<Panel position="top-right">
-					<button
-						onClick={() => setShowAddForm(true)}
-						className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
-					>
-						Add Employee
-					</button>
-				</Panel>
+				<Background color="#374151" gap={16} />
+				<Controls className="bg-gray-800 rounded-lg shadow-lg" />
+				<MiniMap
+					className="bg-gray-800 rounded-lg shadow-lg"
+					nodeColor="#0d9488"
+					maskColor="rgba(17, 24, 39, 0.5)"
+				/>
 			</ReactFlow>
 
-			{showAddForm && (
-				<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-					<AddEmployeeForm
-						onSubmit={handleAddEmployee}
-						onCancel={() => setShowAddForm(false)}
-					/>
-				</div>
-			)}
-
 			{selectedNode && (
-				<div className="fixed top-5 right-5 bg-white p-6 rounded-lg shadow-lg z-50 max-w-xs">
+				<div className="fixed top-5 right-5 z-50 max-w-xs">
 					<NodeDetails node={selectedNode} />
 					<div className="mt-4">
 						<button
 							onClick={() => setSelectedNode(null)}
-							className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-red-500"
+							className="w-full px-4 py-2 bg-teal-600 text-white rounded-md hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-teal-500 transition-colors"
 						>
 							Close
 						</button>

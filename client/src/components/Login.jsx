@@ -85,7 +85,7 @@ const Login = () => {
 
 	return (
 		<motion.div
-			className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 flex flex-col md:flex-row"
+			className="min-h-screen bg-gray-900 flex flex-col md:flex-row"
 			variants={containerVariants}
 			initial="hidden"
 			animate="visible"
@@ -114,9 +114,9 @@ const Login = () => {
 				</p>
 				<div className="space-y-8">
 					<div className="flex items-center group">
-						<div className="bg-gradient-to-r from-gray-700 to-gray-600 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform duration-200">
+						<div className="bg-teal-600 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform duration-200">
 							<svg
-								className="h-6 w-6 text-gray-300"
+								className="h-6 w-6 text-white"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
@@ -134,9 +134,9 @@ const Login = () => {
 						</span>
 					</div>
 					<div className="flex items-center group">
-						<div className="bg-gradient-to-r from-gray-700 to-gray-600 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform duration-200">
+						<div className="bg-teal-600 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform duration-200">
 							<svg
-								className="h-6 w-6 text-gray-300"
+								className="h-6 w-6 text-white"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
@@ -154,9 +154,9 @@ const Login = () => {
 						</span>
 					</div>
 					<div className="flex items-center group">
-						<div className="bg-gradient-to-r from-gray-700 to-gray-600 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform duration-200">
+						<div className="bg-teal-600 p-2 rounded-full mr-4 group-hover:scale-110 transition-transform duration-200">
 							<svg
-								className="h-6 w-6 text-gray-300"
+								className="h-6 w-6 text-white"
 								fill="none"
 								stroke="currentColor"
 								viewBox="0 0 24 24"
@@ -178,22 +178,26 @@ const Login = () => {
 
 			{/* Right Section - Form */}
 			<motion.div
-				className="w-full md:w-1/2 flex flex-col justify-center py-12 px-8 bg-gray-900/50 backdrop-blur-sm"
+				className="w-full md:w-1/2 flex flex-col justify-center py-12 px-8 bg-gray-800"
 				variants={rightVariants}
 			>
 				<div className="max-w-md w-full mx-auto">
-					<h2 className="text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-gray-100 to-gray-400 text-center mb-12 font-serif tracking-tight">
-						Login to your account
-					</h2>
-					<form className="space-y-8" onSubmit={handleSubmit}>
+					<div className="px-6 py-5 bg-teal-600 rounded-t-xl">
+						<h2 className="text-2xl font-medium text-white">Login</h2>
+						<p className="text-teal-50 text-sm mt-1">Sign in to your account</p>
+					</div>
+					<form
+						className="space-y-8 p-6 bg-gray-800 rounded-b-xl"
+						onSubmit={handleSubmit}
+					>
 						<div>
 							<label
 								htmlFor="email"
-								className="block text-sm font-medium text-gray-400 tracking-wide"
+								className="block text-sm font-medium text-gray-300 mb-1"
 							>
 								Email address
 							</label>
-							<div className="mt-2">
+							<div className="mt-1">
 								<input
 									id="email"
 									name="email"
@@ -202,7 +206,7 @@ const Login = () => {
 									required
 									value={formData.email}
 									onChange={handleChange}
-									className="appearance-none block w-full px-4 py-3 border border-gray-700 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent sm:text-sm bg-gray-800/50 text-gray-200 backdrop-blur-sm tracking-wide"
+									className="block w-full px-4 py-3 rounded-md bg-gray-700 border border-gray-600 focus:ring-teal-500 focus:border-teal-500 shadow-sm placeholder-gray-400 text-white text-sm transition-colors"
 								/>
 							</div>
 						</div>
@@ -210,11 +214,11 @@ const Login = () => {
 						<div>
 							<label
 								htmlFor="password"
-								className="block text-sm font-medium text-gray-400 tracking-wide"
+								className="block text-sm font-medium text-gray-300 mb-1"
 							>
 								Password
 							</label>
-							<div className="mt-2">
+							<div className="mt-1">
 								<input
 									id="password"
 									name="password"
@@ -223,7 +227,7 @@ const Login = () => {
 									required
 									value={formData.password}
 									onChange={handleChange}
-									className="appearance-none block w-full px-4 py-3 border border-gray-700 rounded-md shadow-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-600 focus:border-transparent sm:text-sm bg-gray-800/50 text-gray-200 backdrop-blur-sm tracking-wide"
+									className="block w-full px-4 py-3 rounded-md bg-gray-700 border border-gray-600 focus:ring-teal-500 focus:border-teal-500 shadow-sm placeholder-gray-400 text-white text-sm transition-colors"
 								/>
 							</div>
 						</div>
@@ -231,7 +235,7 @@ const Login = () => {
 						<div>
 							<button
 								type="submit"
-								className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-100 bg-gradient-to-r from-gray-700 to-gray-600 hover:from-gray-600 hover:to-gray-500 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-600 transition-all duration-200 tracking-wide"
+								className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
 							>
 								Login
 							</button>
