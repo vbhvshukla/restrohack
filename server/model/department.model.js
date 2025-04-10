@@ -18,8 +18,5 @@ const departmentSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Add index for better query performance
-departmentSchema.index({ name: 1 });
-
 const Department = mongoose.model("Department", departmentSchema);
 export { Department, departmentSchema };

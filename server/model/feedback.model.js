@@ -161,12 +161,4 @@ feedbackSchema.pre('findOneAndUpdate', function (next) {
   next();
 });
 
-// Indexes for better query performance
-feedbackSchema.index({ 'fromUser._id': 1 });
-feedbackSchema.index({ 'toUser._id': 1 });
-feedbackSchema.index({ feedbackType: 1 });
-feedbackSchema.index({ status: 1 });
-feedbackSchema.index({ reviewDate: 1 });
-feedbackSchema.index({ 'fromUser.team._id': 1, 'toUser.team._id': 1 });
-
 export const Feedback = mongoose.model('Feedback', feedbackSchema);
