@@ -1,26 +1,18 @@
 import { Position } from '../model/position.model.js';
+import { User } from '../model/user.model.js';
 import mongoose from 'mongoose';
 
 // Create a new position
 export const createPosition = async (req, res) => {
   try {
-    const { name, level, parentId, childId } = req.body;
+    const { name, level, description } = req.body;
 
-    // Validate parent position exists
-    const parentPosition = await Position.findById(parentId);
-    if (!parentPosition) {
-      return res.status(404).json({
-        success: false,
-        message: 'Parent position not found'
-      });
-    }
-
-    // Check if position name already exists at the same level
-    const existingPosition = await Position.findOne({ name, level });
+    // Check if position name already exists
+    const existingPosition = await Position.findOne({ name });
     if (existingPosition) {
       return res.status(400).json({
         success: false,
-        message: 'Position with this name and level already exists'
+        message: 'Position with this name already exists'
       });
     }
 
@@ -28,17 +20,10 @@ export const createPosition = async (req, res) => {
     const position = new Position({
       name,
       level,
-      parentId,
-      childId: childId || []
+      description
     });
 
     await position.save();
-
-    // Update parent's childId array
-    if (!parentPosition.childId.includes(position._id)) {
-      parentPosition.childId.push(position._id);
-      await parentPosition.save();
-    }
 
     res.status(201).json({
       success: true,
@@ -55,13 +40,37 @@ export const createPosition = async (req, res) => {
   }
 };
 
-// Get all positions
+// Get all positions with hierarchy based on levels
 export const getAllPositions = async (req, res) => {
   try {
     const positions = await Position.find()
-      .populate('parentId', 'name level')
-      .populate('childId', 'name level')
       .sort({ level: 1, name: 1 });
+
+    // Build position hierarchy based on levels
+    const positionHierarchy = buildPositionHierarchy(positions);
+
+    res.status(200).json({
+      success: true,
+      count: positions.length,
+      data: positionHierarchy
+    });
+  } catch (error) {
+    console.error('Error fetching positions:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching positions',
+      error: error.message
+    });
+  }
+};
+
+// Get positions by level
+export const getPositionsByLevel = async (req, res) => {
+  try {
+    const { level } = req.params;
+
+    const positions = await Position.find({ level: parseInt(level) })
+      .sort({ name: 1 });
 
     res.status(200).json({
       success: true,
@@ -69,10 +78,10 @@ export const getAllPositions = async (req, res) => {
       data: positions
     });
   } catch (error) {
-    console.error('Error fetching positions:', error);
+    console.error('Error fetching positions by level:', error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching positions',
+      message: 'Error fetching positions by level',
       error: error.message
     });
   }
@@ -90,9 +99,7 @@ export const getPositionById = async (req, res) => {
       });
     }
 
-    const position = await Position.findById(id)
-      .populate('parentId', 'name level')
-      .populate('childId', 'name level');
+    const position = await Position.findById(id);
 
     if (!position) {
       return res.status(404).json({
@@ -101,9 +108,31 @@ export const getPositionById = async (req, res) => {
       });
     }
 
+    // Get positions at higher levels (potential children)
+    const childPositions = await Position.find({ level: { $gt: position.level } })
+      .select('name level')
+      .sort({ level: 1, name: 1 });
+
+    // Get positions at lower levels (potential parents)
+    const parentPositions = await Position.find({ level: { $lt: position.level } })
+      .select('name level')
+      .sort({ level: -1, name: 1 });
+
+    // Get users in this position
+    const users = await User.find({ positionId: id })
+      .select('name email role')
+      .sort({ name: 1 });
+
+    const positionData = {
+      ...position.toObject(),
+      potentialChildren: childPositions,
+      potentialParents: parentPositions,
+      users: users
+    };
+
     res.status(200).json({
       success: true,
-      data: position
+      data: positionData
     });
   } catch (error) {
     console.error('Error fetching position:', error);
@@ -119,7 +148,7 @@ export const getPositionById = async (req, res) => {
 export const updatePosition = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, level, parentId, childId } = req.body;
+    const { name, level, description } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -137,59 +166,28 @@ export const updatePosition = async (req, res) => {
       });
     }
 
-    // If parentId is being updated, validate the new parent
-    if (parentId && parentId !== position.parentId.toString()) {
-      const newParent = await Position.findById(parentId);
-      if (!newParent) {
-        return res.status(404).json({
-          success: false,
-          message: 'New parent position not found'
-        });
-      }
-
-      // Remove from old parent's childId array
-      const oldParent = await Position.findById(position.parentId);
-      if (oldParent) {
-        oldParent.childId = oldParent.childId.filter(
-          childId => childId.toString() !== id
-        );
-        await oldParent.save();
-      }
-
-      // Add to new parent's childId array
-      if (!newParent.childId.includes(id)) {
-        newParent.childId.push(id);
-        await newParent.save();
-      }
-    }
-
-    // If name or level is being updated, check for duplicates
-    if ((name && name !== position.name) || (level && level !== position.level)) {
-      const existingPosition = await Position.findOne({
-        name: name || position.name,
-        level: level || position.level
-      });
-      if (existingPosition && existingPosition._id.toString() !== id) {
+    // If name is being updated, check for duplicates
+    if (name && name !== position.name) {
+      const existingPosition = await Position.findOne({ name });
+      if (existingPosition) {
         return res.status(400).json({
           success: false,
-          message: 'Position with this name and level already exists'
+          message: 'Position with this name already exists'
         });
       }
     }
 
-    // Update position
-    const updatedPosition = await Position.findByIdAndUpdate(
-      id,
-      { name, level, parentId, childId },
-      { new: true, runValidators: true }
-    )
-      .populate('parentId', 'name level')
-      .populate('childId', 'name level');
+    // Update position fields
+    if (name) position.name = name;
+    if (level) position.level = level;
+    if (description !== undefined) position.description = description;
+
+    await position.save();
 
     res.status(200).json({
       success: true,
       message: 'Position updated successfully',
-      data: updatedPosition
+      data: position
     });
   } catch (error) {
     console.error('Error updating position:', error);
@@ -221,24 +219,16 @@ export const deletePosition = async (req, res) => {
       });
     }
 
-    // Check if position has any children
-    if (position.childId.length > 0) {
+    // Check if position has any users
+    const hasUsers = await User.countDocuments({ positionId: id });
+    if (hasUsers > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete position with child positions'
+        message: 'Cannot delete position with associated users'
       });
     }
 
-    // Remove from parent's childId array
-    const parent = await Position.findById(position.parentId);
-    if (parent) {
-      parent.childId = parent.childId.filter(
-        childId => childId.toString() !== id
-      );
-      await parent.save();
-    }
-
-    await position.remove();
+    await position.deleteOne();
 
     res.status(200).json({
       success: true,
@@ -252,4 +242,30 @@ export const deletePosition = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// Helper function to build position hierarchy based on levels
+const buildPositionHierarchy = (positions) => {
+  // Group positions by level
+  const positionsByLevel = {};
+  positions.forEach(position => {
+    if (!positionsByLevel[position.level]) {
+      positionsByLevel[position.level] = [];
+    }
+    positionsByLevel[position.level].push(position.toObject());
+  });
+
+  // Sort levels
+  const levels = Object.keys(positionsByLevel).map(Number).sort((a, b) => a - b);
+
+  // Build hierarchy
+  const hierarchy = [];
+  levels.forEach(level => {
+    hierarchy.push({
+      level,
+      positions: positionsByLevel[level]
+    });
+  });
+
+  return hierarchy;
 }; 

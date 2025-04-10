@@ -15,8 +15,8 @@ export const createFeedback = async (req, res) => {
     ]);
 
     if (!fromUser || !toUser) {
-      return res.status(404).json({ 
-        message: !fromUser ? 'From user not found' : 'To user not found' 
+      return res.status(404).json({
+        message: !fromUser ? 'From user not found' : 'To user not found'
       });
     }
 
@@ -66,9 +66,9 @@ export const createFeedback = async (req, res) => {
 // Get all feedbacks with pagination and filters
 export const getFeedbacks = async (req, res) => {
   try {
-    const { 
-      limit = 10, 
-      skip = 0, 
+    const {
+      limit = 10,
+      skip = 0,
       page = 1,
       fromUserId,
       toUserId,
@@ -117,7 +117,7 @@ export const getFeedbackById = async (req, res) => {
   try {
     const feedback = await Feedback.findById(req.params.id)
       .populate('questionnaireId', 'name');
-    
+
     if (!feedback) {
       return res.status(404).json({ message: 'Feedback not found' });
     }
@@ -159,7 +159,7 @@ export const updateFeedback = async (req, res) => {
 export const deleteFeedback = async (req, res) => {
   try {
     const feedback = await Feedback.findById(req.params.id);
-    
+
     if (!feedback) {
       return res.status(404).json({ message: 'Feedback not found' });
     }
@@ -174,35 +174,105 @@ export const deleteFeedback = async (req, res) => {
 // Get feedback statistics
 export const getFeedbackStats = async (req, res) => {
   try {
-    const { toUserId, questionnaireId } = req.query;
+    const { userId, feedbackType, startDate, endDate } = req.query;
 
     const query = {};
-    if (toUserId) query['toUser._id'] = toUserId;
-    if (questionnaireId) query.questionnaireId = questionnaireId;
+    if (userId) query['toUser._id'] = userId;
+    if (feedbackType) query.feedbackType = feedbackType;
+    if (startDate && endDate) {
+      query.createdAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate)
+      };
+    }
 
+    // Get detailed statistics with weighted scores
     const stats = await Feedback.aggregate([
       { $match: query },
       {
         $group: {
           _id: '$feedbackType',
           count: { $sum: 1 },
-          avgWeight: { $avg: '$weight' },
-          avgScore: {
+          weightedAvgScore: {
             $avg: {
-              $reduce: {
-                input: '$responses.objective',
-                initialValue: 0,
-                in: { $add: ['$$value', '$$this.score'] }
+              $multiply: [
+                {
+                  $reduce: {
+                    input: '$responses.objective',
+                    initialValue: 0,
+                    in: { $add: ['$$value', '$$this.score'] }
+                  }
+                },
+                '$weight'
+              ]
+            }
+          },
+          avgWeight: { $avg: '$weight' },
+          feedbackTypes: {
+            $push: {
+              type: '$feedbackType',
+              weight: '$weight',
+              score: {
+                $reduce: {
+                  input: '$responses.objective',
+                  initialValue: 0,
+                  in: { $add: ['$$value', '$$this.score'] }
+                }
               }
             }
+          }
+        }
+      },
+      {
+        $project: {
+          feedbackType: '$_id',
+          count: 1,
+          weightedAvgScore: 1,
+          avgWeight: 1,
+          feedbackTypes: 1,
+          _id: 0
+        }
+      }
+    ]);
+
+    // Calculate overall weighted average
+    const overallStats = await Feedback.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalWeightedScore: {
+            $sum: {
+              $multiply: [
+                {
+                  $reduce: {
+                    input: '$responses.objective',
+                    initialValue: 0,
+                    in: { $add: ['$$value', '$$this.score'] }
+                  }
+                },
+                '$weight'
+              ]
+            }
+          },
+          totalWeight: { $sum: '$weight' }
+        }
+      },
+      {
+        $project: {
+          overallWeightedAverage: {
+            $divide: ['$totalWeightedScore', '$totalWeight']
           }
         }
       }
     ]);
 
-    res.json(stats);
+    res.json({
+      feedbackTypeStats: stats,
+      overallStats: overallStats[0] || { overallWeightedAverage: 0 }
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching feedback statistics', error: error.message });
+    res.status(500).json({ message: error.message });
   }
 };
 

@@ -38,6 +38,6 @@ const questionnaireSchema = new mongoose.Schema({
   timestamps: true
 });
 
-export const Questionnaire = mongoose.model('Questionnaire', questionnaireSchema); 
+export const Questionnaire = mongoose.model('Questionnaire', questionnaireSchema);
 
-export {questionnaireSchema};
+export { questionnaireSchema };
