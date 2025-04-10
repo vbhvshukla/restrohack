@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const TeamForm = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
         departmentId: ''
@@ -10,24 +13,19 @@ const TeamForm = () => {
     const [departments, setDepartments] = useState([]);
     const [formState, setFormState] = useState('idle'); // idle, loading, success, error
     const [isLoadingDepartments, setIsLoadingDepartments] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
 
-    // Simulate fetching departments
+    // Fetch departments from backend
     useEffect(() => {
         const fetchDepartments = async () => {
             setIsLoadingDepartments(true);
             try {
-                // In a real app, this would be an API call
-                // Simulating API call with timeout
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                
-                // Mock data
-                setDepartments([
-                    { _id: '1', name: 'Engineering' },
-                    { _id: '2', name: 'Marketing' },
-                    { _id: '3', name: 'Human Resources' },
-                    { _id: '4', name: 'Finance' },
-                    { _id: '5', name: 'Operations' }
-                ]);
+                const response = await axios.get('http://localhost:8006/api/v1/department/');
+                if (response.data.success) {
+                    setDepartments(response.data.data);
+                } else {
+                    console.error('Error fetching departments:', response.data.message);
+                }
             } catch (error) {
                 console.error('Error fetching departments:', error);
             } finally {
@@ -46,30 +44,63 @@ const TeamForm = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setFormState('loading');
+        setErrorMessage('');
         
         // Form validation
         if (!formData.name || !formData.departmentId) {
             setFormState('error');
+            setErrorMessage('Team name and department are required');
             return;
         }
 
-        // Simulate API call
-        setTimeout(() => {
-            console.log(formData);
-            setFormState('success');
+        try {
+            // Send data to backend - matches the createTeam controller endpoint
+            const response = await axios.post('http://localhost:8006/api/v1/team/', {
+                name: formData.name.trim(),
+                departmentId: formData.departmentId
+            });
             
-            // Reset form after success
-            setTimeout(() => {
-                setFormState('idle');
-                setFormData({
-                    name: '',
-                    departmentId: ''
-                });
-            }, 2000);
-        }, 1500);
+            console.log('Team created:', response.data);
+            
+            if (response.data.success) {
+                setFormState('success');
+                
+                // Reset form after success
+                setTimeout(() => {
+                    setFormState('idle');
+                    setFormData({
+                        name: '',
+                        departmentId: ''
+                    });
+                    // Redirect to organization structure page
+                    navigate('/');
+                }, 2000);
+            } else {
+                // Handle potential server-side validation errors
+                setFormState('error');
+                setErrorMessage(response.data.message || 'Failed to create team.');
+            }
+        } catch (error) {
+            console.error('Error creating team:', error);
+            setFormState('error');
+            
+            // Handle specific backend error responses
+            if (error.response?.status === 400 && error.response?.data?.message) {
+                // This covers the "Team with this name already exists" case
+                setErrorMessage(error.response.data.message);
+            } else if (error.response?.status === 404 && error.response?.data?.message) {
+                // This covers the "Department not found" case
+                setErrorMessage(error.response.data.message);
+            } else {
+                setErrorMessage(
+                    error.response?.data?.message || 
+                    'Failed to create team. Please try again.'
+                );
+            }
+        }
     };
 
     const containerVariants = {
@@ -85,6 +116,10 @@ const TeamForm = () => {
                 ease: [0.22, 1, 0.36, 1],
             },
         },
+    };
+
+    const handleCancel = () => {
+        navigate('/');
     };
 
     return (
@@ -168,6 +203,22 @@ const TeamForm = () => {
                                 </div>
                             </div>
                             
+                            {/* Error Message Display */}
+                            {formState === 'error' && errorMessage && (
+                                <div className="p-4 bg-red-900/50 rounded-md border border-red-700">
+                                    <div className="flex items-start">
+                                        <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm text-red-300">{errorMessage}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
                             {/* Info box */}
                             <div className="mt-4 p-4 bg-gray-700 rounded-md border border-gray-600">
                                 <div className="flex items-start">
@@ -188,6 +239,7 @@ const TeamForm = () => {
                             <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-700">
                                 <button
                                     type="button"
+                                    onClick={handleCancel}
                                     className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 rounded-md transition-colors"
                                 >
                                     Cancel
