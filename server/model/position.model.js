@@ -4,18 +4,25 @@ const positionSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
-    trim: true
+    trim: true,
+    unique: true
   },
   level: {
     type: Number,
-    required: true
+    required: true,
+    min: 1
   },
+  description: {
+    type: String,
+    trim: true
+  }
 }, {
   timestamps: true
 });
 
 // Add index for better query performance
-positionSchema.index({ parentId: 1 });
+positionSchema.index({ level: 1 });
+positionSchema.index({ name: 1 });
 
 const Position = mongoose.model("Position", positionSchema);
 export { Position, positionSchema };

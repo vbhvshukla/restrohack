@@ -20,7 +20,7 @@ export const createDepartment = async (req, res) => {
     // Create new department
     const department = new Department({
       name,
-      description
+      description: description || `Department ${name}`
     });
 
     await department.save();
@@ -53,8 +53,8 @@ export const getAllDepartments = async (req, res) => {
 
     // Map department heads to their departments
     const departmentsWithHeads = departments.map(dept => {
-      const deptHead = departmentHeads.find(head => 
-        head.teamId && head.teamId.departmentId && 
+      const deptHead = departmentHeads.find(head =>
+        head.teamId && head.teamId.departmentId &&
         head.teamId.departmentId.toString() === dept._id.toString()
       );
       return {
