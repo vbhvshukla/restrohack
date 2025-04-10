@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { departmentSchema } from "./department.modal";
+import { departmentSchema } from "./department.model.js";
 
 const teamSchema = new mongoose.Schema({
   department: {

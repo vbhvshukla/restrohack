@@ -63,3 +63,5 @@ questionnaireSchema.index({ departmentId: 1, isActive: 1 });
 questionnaireSchema.index({ createdAt: 1 });
 
 export const Questionnaire = mongoose.model('Questionnaire', questionnaireSchema); 
+
+export {questionnaireSchema};
