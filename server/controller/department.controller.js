@@ -245,4 +245,45 @@ export const deleteDepartment = async (req, res) => {
       error: error.message
     });
   }
+};
+
+// Get department by user ID
+export const getDepartmentByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Find user and populate team
+    const user = await User.findById(userId).populate({
+      path: 'teamId',
+      populate: {
+        path: 'departmentId'
+      }
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    if (!user.teamId) {
+      return res.status(404).json({ message: 'User is not assigned to any team' });
+    }
+
+    if (!user.teamId.departmentId) {
+      return res.status(404).json({ message: 'Team is not assigned to any department' });
+    }
+
+    res.json(user.teamId.departmentId);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching department', error: error.message });
+  }
+};
+
+// Get all departments
+export const getDepartments = async (req, res) => {
+  try {
+    const departments = await Department.find({ isActive: true });
+    res.json(departments);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching departments', error: error.message });
+  }
 }; 

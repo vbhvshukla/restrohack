@@ -45,4 +45,23 @@ const logout = ((req, res) => {
     res.status(200).json({ msg: "Logged out successfully" });
 });
 
-export { loginUser, logout }
+
+const getCurrentUser = async (req, res) => {
+    try {
+        let accessToken = req.cookies.accessToken;
+
+        const decoded = jwt.verify(accessToken, process.env.JWT_SECRET);
+        const user = await User.findById(decoded.id).select("-password");
+
+        if (!user) {
+            return res.status(404).json({ msg: "Auth Controller :: User not found" });
+        }
+
+        res.status(200).json({ user });
+    } catch (error) {
+        console.error("Auth Controller :: Error fetching current user", error);
+        res.status(500).json({ msg: "Auth Controller :: Server Error" });
+    }
+};
+
+export { loginUser, logout ,getCurrentUser}

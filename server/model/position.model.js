@@ -5,7 +5,6 @@ const positionSchema = new mongoose.Schema({
     type: String,
     required: true,
     trim: true,
-    unique: true
   },
   level: {
     type: Number,
