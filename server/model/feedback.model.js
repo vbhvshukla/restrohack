@@ -99,21 +99,21 @@ feedbackSchema.index({ feedbackType: 1 });
 feedbackSchema.index({ createdAt: 1 });
 
 // Add validation to ensure feedback is only given to appropriate levels
-feedbackSchema.pre('save', async function(next) {
+feedbackSchema.pre('save', async function (next) {
   const fromLevel = this.fromUser.position.level;
   const toLevel = this.toUser.position.level;
-  
+
   if (this.feedbackType === 'bySenior' && fromLevel <= toLevel) {
     next(new Error('Senior feedback can only be given by higher level employees'));
   } else if (this.feedbackType === 'byJunior' && fromLevel >= toLevel) {
     next(new Error('Junior feedback can only be given by lower level employees'));
   } else if (this.feedbackType === 'byPeer' && fromLevel !== toLevel) {
     next(new Error('Peer feedback can only be given by same level employees'));
-  } else if (this.feedbackType === 'byCollaborator' && 
-             this.fromUser.team.department._id.toString() === this.toUser.team.department._id.toString()) {
+  } else if (this.feedbackType === 'byCollaborator' &&
+    this.fromUser.team.department._id.toString() === this.toUser.team.department._id.toString()) {
     next(new Error('Collaborator feedback can only be given by employees from different departments'));
   }
-  
+
   next();
 });
 
