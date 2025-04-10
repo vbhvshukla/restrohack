@@ -1,4 +1,4 @@
-import User from '../model/user.model.js';
+import { User } from '../model/user.model.js';
 import { Team } from '../model/team.model.js';
 import { Position } from '../model/position.model.js';
 import mongoose from 'mongoose';

@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import { teamSchema } from "./team.modal";
-import { positionSchema } from "./position.modal";
+import { teamSchema } from "./team.model.js";
+import { positionSchema } from "./position.model.js";
 
 const userSchema = new mongoose.Schema({
   position: {
@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema({
     minlength: [2, 'Name must be at least 2 characters'],
     maxlength: [50, 'Name cannot exceed 50 characters'],
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^[a-zA-Z\s-]+$/.test(v);
       },
       message: 'Name can only contain letters, spaces and hyphens'
@@ -31,7 +31,7 @@ const userSchema = new mongoose.Schema({
     lowercase: true,
     trim: true,
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^[\w-]+(\.[\w-]+)*@([\w-]+\.)+[a-zA-Z]{2,7}$/.test(v);
       },
       message: props => `${props.value} is not a valid email address`
@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema({
     required: [true, 'Password is required'],
     minlength: [8, 'Password must be at least 8 characters'],
     validate: {
-      validator: function(v) {
+      validator: function (v) {
         return /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/.test(v);
       },
       message: 'Password must contain at least one uppercase letter, one lowercase letter, one number and one special character'
@@ -71,7 +71,7 @@ userSchema.index({ createdAt: 1 });
 userSchema.index({ 'team.name': 1, 'position.level': 1 });
 
 // Add pre-save middleware for email lowercase conversion
-userSchema.pre('save', function(next) {
+userSchema.pre('save', function (next) {
   if (this.isModified('email')) {
     this.email = this.email.toLowerCase();
   }
@@ -79,4 +79,4 @@ userSchema.pre('save', function(next) {
 });
 
 const User = mongoose.model("User", userSchema);
-export default User;
+export { User, userSchema };

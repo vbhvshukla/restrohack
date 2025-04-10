@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
-import { teamSchema } from "./team.modal";
-import { positionSchema } from "./position.modal";
+import { teamSchema } from "./team.model.js";
+import { positionSchema } from "./position.model.js";
 
 // Create a simplified user embed schema
 const userEmbedSchema = new mongoose.Schema(
