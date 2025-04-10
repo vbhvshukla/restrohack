@@ -5,11 +5,15 @@ import mongoose from 'mongoose';
 
 // Create a new team
 export const createTeam = async (req, res) => {
+  console.log(req.body);
   try {
-    const { name, departmentId } = req.body;
+    const { name, department } = req.body;
+    console.log(name,department)
+    const mongoDepartmentId = new mongoose.Types.ObjectId(department);
 
     // Validate department exists
-    const departmentExists = await Department.findById(departmentId);
+    let departmentExists = await Department.findById(mongoDepartmentId);
+
     if (!departmentExists) {
       return res.status(404).json({
         success: false,
@@ -17,28 +21,16 @@ export const createTeam = async (req, res) => {
       });
     }
 
-    // Check if team name already exists in the same department
-    const existingTeam = await Team.findOne({
-      name,
-      departmentId
-    });
-    if (existingTeam) {
-      return res.status(400).json({
-        success: false,
-        message: 'Team with this name already exists in this department'
-      });
-    }
-
     // Create new team
     const team = new Team({
       name,
-      departmentId
+      departmentId:department
     });
-
+    console.log("team",team)
     await team.save();
 
     // Populate department reference
-    await team.populate('departmentId');
+    // await team.populate('departmentId');
 
     res.status(201).json({
       success: true,
