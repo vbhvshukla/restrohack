@@ -17,12 +17,6 @@ app.use(
         limit: "16kb",
     })
 );
-
 app.use(express.json());
-
-
 app.use(cookieParser());
-
-
-
 export { app }
