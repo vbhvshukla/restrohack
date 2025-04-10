@@ -52,9 +52,6 @@ const feedbackSchema = new mongoose.Schema(
         questionId: {
           type: mongoose.Schema.Types.ObjectId
         },
-        answer: {
-          type: String
-        },
         score: {
           type: Number,
           min: 1,
