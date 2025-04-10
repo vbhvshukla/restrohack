@@ -1,12 +1,15 @@
 import teamsData from '../data/teams.json';
 import { v4 as uuidv4 } from 'uuid';
 
+// Create a copy of the teams data that we can modify
+let teamsState = [...teamsData];
+
 /**
  * Gets all teams from the data source
  * @returns {Array} Array of team objects
  */
 export const getTeams = () => {
-	return teamsData;
+	return teamsState;
 };
 
 /**
@@ -15,7 +18,7 @@ export const getTeams = () => {
  * @returns {Object|null} The team object or null if not found
  */
 export const getTeamById = (teamId) => {
-	return teamsData.find((team) => team.id === teamId) || null;
+	return teamsState.find((team) => team.id === teamId) || null;
 };
 
 /**
@@ -55,9 +58,8 @@ export const createTeam = (teamName, selectedEmployees) => {
 		})),
 	};
 
-	// In a real app, this would make an API call to save the team
-	// For now, we'll add it to the teams array in memory
-	teamsData.push(newTeam);
+	// Add the new team to our state
+	teamsState.push(newTeam);
 
 	return newTeam;
 };
@@ -124,7 +126,7 @@ export const removeEmployeeFromTeam = (teamId, employeeId) => {
  * @returns {boolean} True if team was deleted, false if not found
  */
 export const deleteTeam = (teamId) => {
-	const initialLength = teamsData.length;
-	teamsData = teamsData.filter((team) => team.id !== teamId);
-	return teamsData.length < initialLength;
+	const initialLength = teamsState.length;
+	teamsState = teamsState.filter((team) => team.id !== teamId);
+	return teamsState.length < initialLength;
 };
