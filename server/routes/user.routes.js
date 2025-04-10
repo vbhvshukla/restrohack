@@ -5,10 +5,14 @@ import {
   getUsersByTeam,
   getUserById,
   updateUser,
-  deleteUser
+  deleteUser,
+  injectAdmin
 } from '../controller/user.controller.js';
 
 const router = express.Router();
+
+// Inject admin user
+router.post('/inject-admin', injectAdmin);
 
 // Create a new user
 router.post('/', createUser);

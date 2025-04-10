@@ -2,35 +2,24 @@ import mongoose from "mongoose";
 
 const configSchema = new mongoose.Schema({
   timeInterval: {
-    type: Number,
-    required: [true, 'Time interval is required'],
-    min: [1000, 'Time interval must be at least 1000 milliseconds (1 second)']
+    type: Number
   },
   version: {
     type: String,
-    required: [true, 'Version is required'],
     trim: true
   },
   weights: {
     bySenior: {
-      type: Number,
-      required: [true, 'Senior weight is required'],
-      min: [0, 'Weight cannot be negative']
+      type: Number
     },
     byJunior: {
-      type: Number,
-      required: [true, 'Junior weight is required'],
-      min: [0, 'Weight cannot be negative']
+      type: Number
     },
     byPeer: {
-      type: Number,
-      required: [true, 'Peer weight is required'],
-      min: [0, 'Weight cannot be negative']
+      type: Number
     },
     byCollaborator: {
-      type: Number,
-      required: [true, 'Collaborator weight is required'],
-      min: [0, 'Weight cannot be negative']
+      type: Number
     }
   }
 }, {
