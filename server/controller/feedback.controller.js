@@ -2,21 +2,29 @@ import mongoose from "mongoose";
 import { Feedback } from '../model/feedback.model.js';
 import { Questionnaire } from '../model/questionnaire.model.js';
 import { User } from '../model/user.model.js';
+import { Position } from '../model/position.model.js';
+import { Config } from '../model/config.model.js';
 
 // Create a new feedback
 export const createFeedback = async (req, res) => {
   try {
-    const { fromUserId, toUserId, questionnaireId, feedbackType, responses, weight } = req.body;
+    const { fromUserId, toUserId, questionnaireId, responses } = req.body;
 
-    // Validate users exist
+    // Validate users exist and populate their positions
     const [fromUser, toUser] = await Promise.all([
-      User.findById(fromUserId),
-      User.findById(toUserId)
+      User.findById(fromUserId).populate('positionId'),
+      User.findById(toUserId).populate('positionId')
     ]);
 
     if (!fromUser || !toUser) {
       return res.status(404).json({
         message: !fromUser ? 'From user not found' : 'To user not found'
+      });
+    }
+
+    if (!fromUser.positionId || !toUser.positionId) {
+      return res.status(400).json({
+        message: 'Both users must have positions assigned'
       });
     }
 
@@ -26,22 +34,73 @@ export const createFeedback = async (req, res) => {
       return res.status(404).json({ message: 'Questionnaire not found' });
     }
 
-    // Create user embed objects
+    // Create user embed objects with position information
     const fromUserEmbed = {
       _id: fromUser._id,
       name: fromUser.name,
       email: fromUser.email,
-      position: fromUser.position,
-      team: fromUser.team
+      role: fromUser.role,
+      position: {
+        _id: fromUser.positionId._id,
+        name: fromUser.positionId.name,
+        level: fromUser.positionId.level
+      },
+      team: fromUser.teamId
     };
 
     const toUserEmbed = {
       _id: toUser._id,
       name: toUser.name,
       email: toUser.email,
-      position: toUser.position,
-      team: toUser.team
+      role: toUser.role,
+      position: {
+        _id: toUser.positionId._id,
+        name: toUser.positionId.name,
+        level: toUser.positionId.level
+      },
+      team: toUser.teamId
     };
+
+    // Determine feedback type based on position levels
+    let feedbackType;
+    if (fromUser.teamId?.toString() !== toUser.teamId?.toString()) {
+      feedbackType = 'cross_team';
+    } else {
+      const fromPositionLevel = fromUser.positionId.level;
+      const toPositionLevel = toUser.positionId.level;
+
+      if (fromPositionLevel > toPositionLevel) {
+        feedbackType = 'senior_to_junior';
+      } else if (fromPositionLevel < toPositionLevel) {
+        feedbackType = 'junior_to_senior';
+      } else {
+        feedbackType = 'peer_to_peer';
+      }
+    }
+
+    // Get weight from config based on feedback type
+    const config = await Config.findOne().sort({ createdAt: -1 });
+    if (!config) {
+      return res.status(500).json({ message: 'Configuration not found' });
+    }
+
+    let weight;
+    switch (feedbackType) {
+      case 'senior_to_junior':
+        weight = config.weights.bySenior;
+        break;
+      case 'junior_to_senior':
+        weight = config.weights.byJunior;
+        break;
+      case 'peer_to_peer':
+        weight = config.weights.byPeer;
+        break;
+      case 'cross_team':
+        weight = config.weights.byCollaborator;
+        break;
+      default:
+        weight = 1; // Default weight if feedback type is not recognized
+    }
 
     // Create feedback
     const feedback = new Feedback({

@@ -1,5 +1,8 @@
 import mongoose from "mongoose";
+import jwt from "jsonwebtoken";
+import dotenv from "dotenv";
 
+dotenv.config({ path: ".env" });
 const userSchema = new mongoose.Schema({
   positionId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -41,6 +44,17 @@ userSchema.pre('save', function (next) {
   }
   next();
 });
+
+
+userSchema.methods.generateTokens = function () {
+  const payload = {
+    id: this._id,
+    role: this.role
+  };
+  const accessToken = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '15m' });
+  const refreshToken = jwt.sign(payload, process.env.JWT_REFRESH_TOKEN, { expiresIn: '7d' });
+  return { accessToken, refreshToken }
+}
 
 const User = mongoose.model("User", userSchema);
 export { User, userSchema };
