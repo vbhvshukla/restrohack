@@ -1,14 +1,18 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const DepartmentForm = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         name: '',
         description: '',
         isActive: true
     });
 
-    const [formState, setFormState] = useState('idle'); // idle, loading, success, error
+    const [formState, setFormState] = useState('idle'); 
+    const [errorMessage, setErrorMessage] = useState('');
 
     const handleChange = (e) => {
         const { name, value, type, checked } = e.target;
@@ -18,31 +22,62 @@ const DepartmentForm = () => {
         }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         setFormState('loading');
+        setErrorMessage('');
         
         // Form validation
         if (!formData.name) {
             setFormState('error');
+            setErrorMessage('Department name is required');
             return;
         }
 
-        // Simulate API call
-        setTimeout(() => {
-            console.log(formData);
-            setFormState('success');
+        try {
+            // Send data to backend running on port 8006
+            const response = await axios.post('http://localhost:8006/api/v1/department/', {
+                name: formData.name.trim(),
+                description: formData.description.trim(),
+                isActive: formData.isActive
+            });
             
-            // Reset form after success
-            setTimeout(() => {
-                setFormState('idle');
-                setFormData({
-                    name: '',
-                    description: '',
-                    isActive: true
-                });
-            }, 2000);
-        }, 1500);
+            console.log('Department created:', response.data);
+            
+            if (response.data.success) {
+                setFormState('success');
+                
+                // Reset form after success
+                setTimeout(() => {
+                    setFormState('idle');
+                    setFormData({
+                        name: '',
+                        description: '',
+                        isActive: true
+                    });
+                    // Redirect to organization structure page
+                    navigate('/');
+                }, 2000);
+            } else {
+                // Handle potential server-side validation errors
+                setFormState('error');
+                setErrorMessage(response.data.message || 'Failed to create department.');
+            }
+        } catch (error) {
+            console.error('Error creating department:', error);
+            setFormState('error');
+            
+            // Handle specific backend error responses
+            if (error.response?.status === 400 && error.response?.data?.message) {
+                // This covers the "Department with this name already exists" case
+                setErrorMessage(error.response.data.message);
+            } else {
+                setErrorMessage(
+                    error.response?.data?.message || 
+                    'Failed to create department. Please try again.'
+                );
+            }
+        }
     };
 
     const containerVariants = {
@@ -58,6 +93,10 @@ const DepartmentForm = () => {
                 ease: [0.22, 1, 0.36, 1],
             },
         },
+    };
+
+    const handleCancel = () => {
+        navigate('/');
     };
 
     return (
@@ -156,6 +195,22 @@ const DepartmentForm = () => {
                                 </div>
                             </div>
                             
+                            {/* Error Message Display */}
+                            {formState === 'error' && errorMessage && (
+                                <div className="p-4 bg-red-900/50 rounded-md border border-red-700">
+                                    <div className="flex items-start">
+                                        <div className="flex-shrink-0">
+                                            <svg className="h-5 w-5 text-red-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                                            </svg>
+                                        </div>
+                                        <div className="ml-3">
+                                            <p className="text-sm text-red-300">{errorMessage}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                            
                             {/* Info box */}
                             <div className="mt-4 p-4 bg-gray-700 rounded-md border border-gray-600">
                                 <div className="flex items-start">
@@ -177,6 +232,7 @@ const DepartmentForm = () => {
                             <div className="flex justify-end space-x-3 mt-6 pt-4 border-t border-gray-700">
                                 <button
                                     type="button"
+                                    onClick={handleCancel}
                                     className="px-4 py-2 text-sm font-medium text-gray-300 hover:bg-gray-700 rounded-md transition-colors"
                                 >
                                     Cancel
