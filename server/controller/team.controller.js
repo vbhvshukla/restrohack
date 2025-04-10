@@ -1,14 +1,15 @@
 import { Team } from '../model/team.model.js';
 import { Department } from '../model/department.model.js';
+import { User } from '../model/user.model.js';
 import mongoose from 'mongoose';
 
 // Create a new team
 export const createTeam = async (req, res) => {
   try {
-    const { name, department } = req.body;
+    const { name, departmentId } = req.body;
 
     // Validate department exists
-    const departmentExists = await Department.findById(department._id);
+    const departmentExists = await Department.findById(departmentId);
     if (!departmentExists) {
       return res.status(404).json({
         success: false,
@@ -19,7 +20,7 @@ export const createTeam = async (req, res) => {
     // Check if team name already exists in the same department
     const existingTeam = await Team.findOne({
       name,
-      'department._id': department._id
+      departmentId
     });
     if (existingTeam) {
       return res.status(400).json({
@@ -31,10 +32,13 @@ export const createTeam = async (req, res) => {
     // Create new team
     const team = new Team({
       name,
-      department
+      departmentId
     });
 
     await team.save();
+
+    // Populate department reference
+    await team.populate('departmentId');
 
     res.status(201).json({
       success: true,
@@ -51,11 +55,12 @@ export const createTeam = async (req, res) => {
   }
 };
 
-// Get all teams
+// Get all teams with populated references
 export const getAllTeams = async (req, res) => {
   try {
     const teams = await Team.find()
-      .sort({ 'department.name': 1, name: 1 });
+      .populate('departmentId')
+      .sort({ 'departmentId.name': 1, name: 1 });
 
     res.status(200).json({
       success: true,
@@ -84,7 +89,8 @@ export const getTeamsByDepartment = async (req, res) => {
       });
     }
 
-    const teams = await Team.find({ 'department._id': departmentId })
+    const teams = await Team.find({ departmentId })
+      .populate('departmentId')
       .sort({ name: 1 });
 
     res.status(200).json({
@@ -102,7 +108,7 @@ export const getTeamsByDepartment = async (req, res) => {
   }
 };
 
-// Get single team by ID
+// Get single team by ID with populated references
 export const getTeamById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -114,7 +120,7 @@ export const getTeamById = async (req, res) => {
       });
     }
 
-    const team = await Team.findById(id);
+    const team = await Team.findById(id).populate('departmentId');
 
     if (!team) {
       return res.status(404).json({
@@ -141,7 +147,7 @@ export const getTeamById = async (req, res) => {
 export const updateTeam = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, department } = req.body;
+    const { name, departmentId } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -160,8 +166,8 @@ export const updateTeam = async (req, res) => {
     }
 
     // If department is being updated, validate the new department
-    if (department && department._id !== team.department._id.toString()) {
-      const newDepartment = await Department.findById(department._id);
+    if (departmentId && departmentId !== team.departmentId.toString()) {
+      const newDepartment = await Department.findById(departmentId);
       if (!newDepartment) {
         return res.status(404).json({
           success: false,
@@ -174,7 +180,7 @@ export const updateTeam = async (req, res) => {
     if (name && name !== team.name) {
       const existingTeam = await Team.findOne({
         name,
-        'department._id': department?._id || team.department._id
+        departmentId: departmentId || team.departmentId
       });
       if (existingTeam && existingTeam._id.toString() !== id) {
         return res.status(400).json({
@@ -184,12 +190,14 @@ export const updateTeam = async (req, res) => {
       }
     }
 
-    // Update team
-    const updatedTeam = await Team.findByIdAndUpdate(
-      id,
-      { name, department },
-      { new: true, runValidators: true }
-    );
+    // Update team fields
+    if (name) team.name = name;
+    if (departmentId) team.departmentId = departmentId;
+
+    await team.save();
+
+    // Get updated team with populated references
+    const updatedTeam = await Team.findById(id).populate('departmentId');
 
     res.status(200).json({
       success: true,
@@ -227,7 +235,7 @@ export const deleteTeam = async (req, res) => {
     }
 
     // Check if team has any users
-    const hasUsers = await mongoose.model('User').countDocuments({ 'team._id': id });
+    const hasUsers = await User.countDocuments({ teamId: id });
     if (hasUsers > 0) {
       return res.status(400).json({
         success: false,
@@ -235,7 +243,7 @@ export const deleteTeam = async (req, res) => {
       });
     }
 
-    await team.remove();
+    await team.deleteOne();
 
     res.status(200).json({
       success: true,

@@ -1,20 +1,12 @@
 import { Department } from '../model/department.model.js';
 import { User } from '../model/user.model.js';
+import { Team } from '../model/team.model.js';
 import mongoose from 'mongoose';
 
 // Create a new department
 export const createDepartment = async (req, res) => {
   try {
-    const { name, headUserId, questionaire } = req.body;
-
-    // Validate if the user exists and has appropriate role
-    const headUser = await User.findById(headUserId);
-    if (!headUser) {
-      return res.status(404).json({
-        success: false,
-        message: 'Department head user not found'
-      });
-    }
+    const { name, description } = req.body;
 
     // Check if department name already exists
     const existingDepartment = await Department.findOne({ name });
@@ -28,8 +20,7 @@ export const createDepartment = async (req, res) => {
     // Create new department
     const department = new Department({
       name,
-      headUserId,
-      questionaire
+      description
     });
 
     await department.save();
@@ -53,13 +44,33 @@ export const createDepartment = async (req, res) => {
 export const getAllDepartments = async (req, res) => {
   try {
     const departments = await Department.find()
-      .populate('headUserId', 'name email position')
-      .sort({ createdAt: -1 });
+      .sort({ name: 1 });
+
+    // Get department heads
+    const departmentHeads = await User.find({ role: 'department_head' })
+      .select('name email teamId')
+      .populate('teamId');
+
+    // Map department heads to their departments
+    const departmentsWithHeads = departments.map(dept => {
+      const deptHead = departmentHeads.find(head => 
+        head.teamId && head.teamId.departmentId && 
+        head.teamId.departmentId.toString() === dept._id.toString()
+      );
+      return {
+        ...dept.toObject(),
+        head: deptHead ? {
+          _id: deptHead._id,
+          name: deptHead.name,
+          email: deptHead.email
+        } : null
+      };
+    });
 
     res.status(200).json({
       success: true,
       count: departments.length,
-      data: departments
+      data: departmentsWithHeads
     });
   } catch (error) {
     console.error('Error fetching departments:', error);
@@ -83,8 +94,7 @@ export const getDepartmentById = async (req, res) => {
       });
     }
 
-    const department = await Department.findById(id)
-      .populate('headUserId', 'name email position');
+    const department = await Department.findById(id);
 
     if (!department) {
       return res.status(404).json({
@@ -93,9 +103,24 @@ export const getDepartmentById = async (req, res) => {
       });
     }
 
+    // Get department head
+    const departmentHead = await User.findOne({
+      role: 'department_head',
+      'teamId.departmentId': id
+    }).select('name email teamId').populate('teamId');
+
+    const departmentData = {
+      ...department.toObject(),
+      head: departmentHead ? {
+        _id: departmentHead._id,
+        name: departmentHead.name,
+        email: departmentHead.email
+      } : null
+    };
+
     res.status(200).json({
       success: true,
-      data: department
+      data: departmentData
     });
   } catch (error) {
     console.error('Error fetching department:', error);
@@ -111,7 +136,7 @@ export const getDepartmentById = async (req, res) => {
 export const updateDepartment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, headUserId, questionaire } = req.body;
+    const { name, description, isActive } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -129,17 +154,6 @@ export const updateDepartment = async (req, res) => {
       });
     }
 
-    // If headUserId is being updated, validate the new user
-    if (headUserId && headUserId !== department.headUserId.toString()) {
-      const newHead = await User.findById(headUserId);
-      if (!newHead) {
-        return res.status(404).json({
-          success: false,
-          message: 'New department head user not found'
-        });
-      }
-    }
-
     // If name is being updated, check for duplicates
     if (name && name !== department.name) {
       const existingDepartment = await Department.findOne({ name });
@@ -151,12 +165,27 @@ export const updateDepartment = async (req, res) => {
       }
     }
 
-    // Update department
-    const updatedDepartment = await Department.findByIdAndUpdate(
-      id,
-      { name, headUserId, questionaire },
-      { new: true, runValidators: true }
-    ).populate('headUserId', 'name email position');
+    // Update department fields
+    if (name) department.name = name;
+    if (description !== undefined) department.description = description;
+    if (isActive !== undefined) department.isActive = isActive;
+
+    await department.save();
+
+    // Get updated department with head information
+    const departmentHead = await User.findOne({
+      role: 'department_head',
+      'teamId.departmentId': id
+    }).select('name email teamId').populate('teamId');
+
+    const updatedDepartment = {
+      ...department.toObject(),
+      head: departmentHead ? {
+        _id: departmentHead._id,
+        name: departmentHead.name,
+        email: departmentHead.email
+      } : null
+    };
 
     res.status(200).json({
       success: true,
@@ -193,18 +222,16 @@ export const deleteDepartment = async (req, res) => {
       });
     }
 
-    // Check if department has any teams or users
-    const hasTeams = await mongoose.model('Team').countDocuments({ 'department._id': id });
-    const hasUsers = await User.countDocuments({ 'team.department._id': id });
-
-    if (hasTeams > 0 || hasUsers > 0) {
+    // Check if department has any teams
+    const hasTeams = await Team.countDocuments({ departmentId: id });
+    if (hasTeams > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Cannot delete department with associated teams or users'
+        message: 'Cannot delete department with associated teams'
       });
     }
 
-    await department.remove();
+    await department.deleteOne();
 
     res.status(200).json({
       success: true,

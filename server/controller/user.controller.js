@@ -1,16 +1,85 @@
 import { User } from '../model/user.model.js';
 import { Team } from '../model/team.model.js';
 import { Position } from '../model/position.model.js';
+import { Department } from '../model/department.model.js';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+
+// Inject admin user if none exists
+export const injectAdmin = async (req, res) => {
+  try {
+    // Check if admin already exists
+    const adminExists = await User.findOne({ role: 'admin' });
+    if (adminExists) {
+      return res.status(400).json({
+        success: false,
+        message: 'Admin user already exists'
+      });
+    }
+
+    // Create default admin position
+    const adminPosition = new Position({
+      name: 'Administrator',
+      level: 1
+    });
+    await adminPosition.save();
+
+    // Create default admin department
+    const adminDepartment = new Department({
+      name: 'System',
+      description: 'System Administration Department'
+    });
+    await adminDepartment.save();
+
+    // Create default admin team
+    const adminTeam = new Team({
+      name: 'Administration',
+      departmentId: adminDepartment._id
+    });
+    await adminTeam.save();
+
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash('Admin@123', salt);
+
+    // Create admin user
+    const adminUser = new User({
+      name: 'System Administrator',
+      email: 'admin@restroworks.com',
+      password: hashedPassword,
+      positionId: adminPosition._id,
+      teamId: adminTeam._id,
+      role: 'admin'
+    });
+
+    await adminUser.save();
+
+    // Remove password from response
+    const userResponse = adminUser.toObject();
+    delete userResponse.password;
+
+    res.status(201).json({
+      success: true,
+      message: 'Admin user created successfully',
+      data: userResponse
+    });
+  } catch (error) {
+    console.error('Error creating admin user:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error creating admin user',
+      error: error.message
+    });
+  }
+};
 
 // Create a new user
 export const createUser = async (req, res) => {
   try {
-    const { name, email, password, position, team, role } = req.body;
+    const { name, email, password, positionId, teamId, role } = req.body;
 
     // Validate team exists
-    const teamExists = await Team.findById(team._id);
+    const teamExists = await Team.findById(teamId);
     if (!teamExists) {
       return res.status(404).json({
         success: false,
@@ -19,7 +88,7 @@ export const createUser = async (req, res) => {
     }
 
     // Validate position exists
-    const positionExists = await Position.findById(position._id);
+    const positionExists = await Position.findById(positionId);
     if (!positionExists) {
       return res.status(404).json({
         success: false,
@@ -45,8 +114,8 @@ export const createUser = async (req, res) => {
       name,
       email: email.toLowerCase(),
       password: hashedPassword,
-      position,
-      team,
+      positionId,
+      teamId: teamId || null,
       role: role || 'user'
     });
 
@@ -71,12 +140,14 @@ export const createUser = async (req, res) => {
   }
 };
 
-// Get all users
+// Get all users with populated references
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find()
       .select('-password')
-      .sort({ 'team.name': 1, 'position.level': 1, name: 1 });
+      .populate('positionId')
+      .populate('teamId')
+      .sort({ 'teamId.name': 1, 'positionId.level': 1, name: 1 });
 
     res.status(200).json({
       success: true,
@@ -105,9 +176,11 @@ export const getUsersByTeam = async (req, res) => {
       });
     }
 
-    const users = await User.find({ 'team._id': teamId })
+    const users = await User.find({ teamId })
       .select('-password')
-      .sort({ 'position.level': 1, name: 1 });
+      .populate('positionId')
+      .populate('teamId')
+      .sort({ 'positionId.level': 1, name: 1 });
 
     res.status(200).json({
       success: true,
@@ -124,7 +197,7 @@ export const getUsersByTeam = async (req, res) => {
   }
 };
 
-// Get single user by ID
+// Get single user by ID with populated references
 export const getUserById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -136,7 +209,10 @@ export const getUserById = async (req, res) => {
       });
     }
 
-    const user = await User.findById(id).select('-password');
+    const user = await User.findById(id)
+      .select('-password')
+      .populate('positionId')
+      .populate('teamId');
 
     if (!user) {
       return res.status(404).json({
@@ -163,7 +239,7 @@ export const getUserById = async (req, res) => {
 export const updateUser = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, email, password, position, team, role } = req.body;
+    const { name, email, password, positionId, teamId, role } = req.body;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
@@ -182,8 +258,8 @@ export const updateUser = async (req, res) => {
     }
 
     // If team is being updated, validate the new team
-    if (team && team._id !== user.team._id.toString()) {
-      const newTeam = await Team.findById(team._id);
+    if (teamId && teamId !== user.teamId.toString()) {
+      const newTeam = await Team.findById(teamId);
       if (!newTeam) {
         return res.status(404).json({
           success: false,
@@ -193,8 +269,8 @@ export const updateUser = async (req, res) => {
     }
 
     // If position is being updated, validate the new position
-    if (position && position._id !== user.position._id.toString()) {
-      const newPosition = await Position.findById(position._id);
+    if (positionId && positionId !== user.positionId.toString()) {
+      const newPosition = await Position.findById(positionId);
       if (!newPosition) {
         return res.status(404).json({
           success: false,
@@ -203,10 +279,10 @@ export const updateUser = async (req, res) => {
       }
     }
 
-    // If email is being updated, check for duplicates
+    // If email is being updated, check if it already exists
     if (email && email.toLowerCase() !== user.email) {
       const existingUser = await User.findOne({ email: email.toLowerCase() });
-      if (existingUser && existingUser._id.toString() !== id) {
+      if (existingUser) {
         return res.status(400).json({
           success: false,
           message: 'Email already exists'
@@ -214,27 +290,24 @@ export const updateUser = async (req, res) => {
       }
     }
 
-    // Prepare update data
-    const updateData = {
-      name: name || user.name,
-      email: email ? email.toLowerCase() : user.email,
-      position: position || user.position,
-      team: team || user.team,
-      role: role || user.role
-    };
-
-    // If password is being updated, hash it
+    // Update user fields
+    if (name) user.name = name;
+    if (email) user.email = email.toLowerCase();
+    if (role) user.role = role;
+    if (teamId) user.teamId = teamId;
+    if (positionId) user.positionId = positionId;
     if (password) {
       const salt = await bcrypt.genSalt(10);
-      updateData.password = await bcrypt.hash(password, salt);
+      user.password = await bcrypt.hash(password, salt);
     }
 
-    // Update user
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    ).select('-password');
+    await user.save();
+
+    // Get updated user with populated references
+    const updatedUser = await User.findById(id)
+      .select('-password')
+      .populate('positionId')
+      .populate('teamId');
 
     res.status(200).json({
       success: true,
@@ -271,18 +344,7 @@ export const deleteUser = async (req, res) => {
       });
     }
 
-    // Check if user is a department head
-    if (user.role === 'deptHead') {
-      const department = await mongoose.model('Department').findOne({ headUserId: id });
-      if (department) {
-        return res.status(400).json({
-          success: false,
-          message: 'Cannot delete user who is a department head'
-        });
-      }
-    }
-
-    await user.remove();
+    await user.deleteOne();
 
     res.status(200).json({
       success: true,
