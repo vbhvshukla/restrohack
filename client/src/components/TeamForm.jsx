@@ -57,11 +57,28 @@ const TeamForm = () => {
         }
 
         try {
-            // Send data to backend - matches the createTeam controller endpoint
-            const response = await axios.post('http://localhost:8006/api/v1/team/', {
+            // The department field expects a proper department object with name
+            // Find the selected department from our departments array
+            const selectedDepartment = departments.find(dept => dept._id === formData.departmentId);
+            
+            if (!selectedDepartment) {
+                setFormState('error');
+                setErrorMessage('Selected department not found. Please try again.');
+                return;
+            }
+            
+            const payload = {
                 name: formData.name.trim(),
-                departmentId: formData.departmentId
-            });
+                department: {
+                    _id: selectedDepartment._id,
+                    name: selectedDepartment.name
+                }
+            };
+            
+            console.log('Sending team data:', payload);
+            
+            // Update to match the correct API endpoint for teams
+            const response = await axios.post('http://localhost:8006/api/v1/team/', payload);
             
             console.log('Team created:', response.data);
             
@@ -89,10 +106,8 @@ const TeamForm = () => {
             
             // Handle specific backend error responses
             if (error.response?.status === 400 && error.response?.data?.message) {
-                // This covers the "Team with this name already exists" case
                 setErrorMessage(error.response.data.message);
             } else if (error.response?.status === 404 && error.response?.data?.message) {
-                // This covers the "Department not found" case
                 setErrorMessage(error.response.data.message);
             } else {
                 setErrorMessage(
@@ -188,7 +203,7 @@ const TeamForm = () => {
                                             isLoadingDepartments ? 'cursor-wait' : ''
                                         }`}
                                     >
-                                        <option value="" disabled>
+                                        <option key="default-department" value="" disabled>
                                             {isLoadingDepartments ? 'Loading departments...' : 'Select a department'}
                                         </option>
                                         {departments.map(department => (

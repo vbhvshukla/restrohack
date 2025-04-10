@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import axios from 'axios';
 
 const Login = () => {
+	const navigate = useNavigate();
 	const [formData, setFormData] = useState({
 		email: '',
 		password: '',
 	});
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState('');
 
 	const handleChange = (e) => {
 		const { name, value } = e.target;
@@ -16,10 +20,46 @@ const Login = () => {
 		}));
 	};
 
-	const handleSubmit = (e) => {
+	const handleSubmit = async (e) => {
 		e.preventDefault();
-		// Handle form submission here
-		console.log(formData);
+		setLoading(true);
+		setError('');
+		
+		try {
+			// Send login request to the backend
+			const response = await axios.post('http://localhost:8006/api/v1/auth/login', {
+				email: formData.email.trim(),
+				password: formData.password
+			}, {
+				withCredentials: true // Important for cookies
+			});
+			
+			console.log('Login response:', response.data);
+			
+			// Check if login was successful
+			if (response.data.msg === "Auth Controller :: Login Successful" && response.data.user) {
+				// Store user info in localStorage for frontend use
+				localStorage.setItem('user', JSON.stringify({
+					id: response.data.user._id,
+					name: response.data.user.name,
+					email: response.data.user.email,
+					role: response.data.user.role
+				}));
+				
+				// Redirect to dashboard after successful login
+				navigate('/');
+			} else {
+				setError(response.data.msg || 'Login failed');
+			}
+		} catch (error) {
+			console.error('Login error:', error);
+			setError(
+				error.response?.data?.msg || 
+				'Login failed. Please check your credentials and try again.'
+			);
+		} finally {
+			setLoading(false);
+		}
 	};
 
 	const containerVariants = {
@@ -190,6 +230,12 @@ const Login = () => {
 						className="space-y-8 p-6 bg-gray-800 rounded-b-xl"
 						onSubmit={handleSubmit}
 					>
+						{error && (
+							<div className="p-4 bg-red-900/50 rounded-md border border-red-700">
+								<p className="text-sm text-red-300">{error}</p>
+							</div>
+						)}
+
 						<div>
 							<label
 								htmlFor="email"
@@ -235,9 +281,18 @@ const Login = () => {
 						<div>
 							<button
 								type="submit"
+								disabled={loading}
 								className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 transition-colors"
 							>
-								Login
+								{loading ? (
+									<span className="flex items-center">
+										<svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+											<circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+											<path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+										</svg>
+										Logging in...
+									</span>
+								) : "Login"}
 							</button>
 						</div>
 					</form>
