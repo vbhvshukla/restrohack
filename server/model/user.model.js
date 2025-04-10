@@ -27,7 +27,6 @@ const userSchema = new mongoose.Schema({
   email: {
     type: String,
     required: [true, 'Email is required'],
-    unique: true,
     lowercase: true,
     trim: true,
     validate: {
@@ -63,8 +62,6 @@ const userSchema = new mongoose.Schema({
 // Add indexes for better query performance
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1 });
-userSchema.index({ 'team.name': 1 });
-userSchema.index({ 'position.name': 1 });
 userSchema.index({ createdAt: 1 });
 
 // Add compound indexes
