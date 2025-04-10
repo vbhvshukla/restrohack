@@ -4,7 +4,8 @@ import {
   getAllDepartments,
   getDepartmentById,
   updateDepartment,
-  deleteDepartment
+  deleteDepartment,
+  getDepartmentByUserId
 } from '../controller/department.controller.js';
 
 const router = express.Router();
@@ -23,5 +24,9 @@ router.put('/:id', updateDepartment);
 
 // Delete department
 router.delete('/:id', deleteDepartment);
+
+// Get department by user id
+
+router.get("/departmentbyuser/:userId", getDepartmentByUserId);
 
 export default router; 
