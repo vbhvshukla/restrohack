@@ -5,4 +5,5 @@ import teamRoutes from './team.routes.js';
 import userRoutes from './user.routes.js';
 import questionnaireRoutes from './questionnaire.routes.js';
 import authRoutes from "./auth.routes.js";
-export { departmentRoutes, positionRoutes, teamRoutes, userRoutes, questionnaireRoutes, authRoutes };
+import feedbackRoutes from "./feedback.routes.js";
+export { departmentRoutes, positionRoutes, teamRoutes, userRoutes, questionnaireRoutes, authRoutes, feedbackRoutes };
