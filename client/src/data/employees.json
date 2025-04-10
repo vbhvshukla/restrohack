@@ -1,0 +1,128 @@
+[
+	{
+		"department": "dev",
+		"position": 1,
+		"name": "Alex Johnson",
+		"email": "alex.johnson@company.com"
+	},
+	{
+		"department": "dev",
+		"position": 2,
+		"name": "Rahul Agarwal",
+		"email": "rahul.agarwal@company.com"
+	},
+	{
+		"department": "dev",
+		"position": 2,
+		"name": "Sarah Chen",
+		"email": "sarah.chen@company.com"
+	},
+	{
+		"department": "dev",
+		"position": 3,
+		"name": "Michael Rodriguez",
+		"email": "michael.rodriguez@company.com"
+	},
+	{
+		"department": "dev",
+		"position": 3,
+		"name": "Priya Patel",
+		"email": "priya.patel@company.com"
+	},
+	{
+		"department": "dev",
+		"position": 4,
+		"name": "James Wilson",
+		"email": "james.wilson@company.com"
+	},
+	{
+		"department": "dev",
+		"position": 5,
+		"name": "Emma Davis",
+		"email": "emma.davis@company.com"
+	},
+	{
+		"department": "sales",
+		"position": 1,
+		"name": "Robert Kim",
+		"email": "robert.kim@company.com"
+	},
+	{
+		"department": "sales",
+		"position": 2,
+		"name": "Lisa Wang",
+		"email": "lisa.wang@company.com"
+	},
+	{
+		"department": "sales",
+		"position": 2,
+		"name": "David Smith",
+		"email": "david.smith@company.com"
+	},
+	{
+		"department": "sales",
+		"position": 3,
+		"name": "Jessica Brown",
+		"email": "jessica.brown@company.com"
+	},
+	{
+		"department": "sales",
+		"position": 4,
+		"name": "Daniel Martinez",
+		"email": "daniel.martinez@company.com"
+	},
+	{
+		"department": "sales",
+		"position": 4,
+		"name": "Nicole Taylor",
+		"email": "nicole.taylor@company.com"
+	},
+	{
+		"department": "sales",
+		"position": 5,
+		"name": "Thomas Lee",
+		"email": "thomas.lee@company.com"
+	},
+	{
+		"department": "marketing",
+		"position": 1,
+		"name": "Jennifer Garcia",
+		"email": "jennifer.garcia@company.com"
+	},
+	{
+		"department": "marketing",
+		"position": 2,
+		"name": "Christopher Nguyen",
+		"email": "christopher.nguyen@company.com"
+	},
+	{
+		"department": "marketing",
+		"position": 3,
+		"name": "Samantha Williams",
+		"email": "samantha.williams@company.com"
+	},
+	{
+		"department": "marketing",
+		"position": 3,
+		"name": "Andrew Thompson",
+		"email": "andrew.thompson@company.com"
+	},
+	{
+		"department": "marketing",
+		"position": 4,
+		"name": "Michelle Jones",
+		"email": "michelle.jones@company.com"
+	},
+	{
+		"department": "marketing",
+		"position": 5,
+		"name": "Kevin Moore",
+		"email": "kevin.moore@company.com"
+	},
+	{
+		"department": "marketing",
+		"position": 5,
+		"name": "Olivia Wright",
+		"email": "olivia.wright@company.com"
+	}
+]
