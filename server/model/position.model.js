@@ -29,31 +29,31 @@ const positionSchema = new mongoose.Schema(
     parentId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Position",
-      required: [true, "Parent position is required"],
-      validate: {
-        validator: async function (v) {
-          if (this.isNew || this.isModified("parentId")) {
-            const Position = mongoose.model("Position");
-            const parent = await Position.findById(v);
-            return !!parent;
-          }
-          return true;
-        },
-        message: "Parent position does not exist",
-      },
+      // required: [true, "Parent position is required"],
+      // validate: {
+      //   validator: async function (v) {
+      //     if (this.isNew || this.isModified("parentId")) {
+      //       const Position = mongoose.model("Position");
+      //       const parent = await Position.findById(v);
+      //       return !!parent;
+      //     }
+      //     return true;
+      //   },
+      //   message: "Parent position does not exist",
+      // },
     },
     childId: [
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Position",
-        validate: {
-          validator: async function (v) {
-            const Position = mongoose.model("Position");
-            const child = await Position.findById(v);
-            return !!child;
-          },
-          message: "Child position does not exist",
-        },
+        // validate: {
+        //   validator: async function (v) {
+        //     const Position = mongoose.model("Position");
+        //     const child = await Position.findById(v);
+        //     return !!child;
+        //   },
+        //   message: "Child position does not exist",
+        // },
       },
     ],
   },
